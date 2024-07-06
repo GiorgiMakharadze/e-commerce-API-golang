@@ -15,14 +15,15 @@ type Config struct {
 	DBPassword string
 	DBName     string
 	AppPort    int
+	Secret     string
 }
 
 var AppConfig *Config
 
-func LoadConfig() {
-	err := godotenv.Load("../../.env")
+func LoadConfig(filePath string) {
+	err := godotenv.Load(filePath)
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		log.Fatalf("Error loading .env file from %s: %v", filePath, err)
 	}
 
 	dbPort, err := strconv.Atoi(os.Getenv("DB_PORT"))
@@ -42,5 +43,6 @@ func LoadConfig() {
 		DBPassword: os.Getenv("DB_PASSWORD"),
 		DBName:     os.Getenv("DB_NAME"),
 		AppPort:    appPort,
+		Secret:     os.Getenv("SECRET"),
 	}
 }

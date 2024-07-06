@@ -6,14 +6,14 @@ import (
 	"net/http"
 
 	"github.com/GiorgiMakharadze/e-commerce-API-golang/config"
-	_ "github.com/GiorgiMakharadze/e-commerce-API-golang/db"
+	"github.com/GiorgiMakharadze/e-commerce-API-golang/db"
 	"github.com/GiorgiMakharadze/e-commerce-API-golang/routes"
 )
 
 func main() {
-	config.LoadConfig()
+	config.LoadConfig("../../.env")
 
-	// db.ConnectDB()
+	db.ConnectDB()
 
 	router := routes.SetupRouter()
 
