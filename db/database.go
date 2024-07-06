@@ -1,9 +1,10 @@
 package db
 
 import (
+	"fmt"
 	"log"
-	"os"
 
+	"github.com/GiorgiMakharadze/e-commerce-API-golang/config"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -11,7 +12,14 @@ import (
 var DB *gorm.DB
 
 func ConnectDB() {
-	dsn := os.Getenv("DB_URL")
+    dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+	config.AppConfig.DBHost,
+	config.AppConfig.DBPort,
+	config.AppConfig.DBUser,
+	config.AppConfig.DBPassword,
+	config.AppConfig.DBName,
+
+)
 	var err error
 	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
 
