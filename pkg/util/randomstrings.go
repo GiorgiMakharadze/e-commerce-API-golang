@@ -1,4 +1,4 @@
-package randomstrings
+package util
 
 import (
 	"crypto/rand"
