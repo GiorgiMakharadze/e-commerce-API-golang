@@ -12,6 +12,40 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+func validatePassword(password string) error {
+	if len(password) < 8 {
+		return errors.New("password must be at least 8 characters long")
+	}
+	return nil
+}
+
+func generateJWT(userID uint, role UserRole) (string, string, error) {
+	accessClaims := jwt.MapClaims{
+		"id":   userID,
+		"role": role,
+		"exp":  time.Now().Add(time.Hour * 24).Unix(),
+	}
+
+	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
+	accessTokenString, err := accessToken.SignedString([]byte(os.Getenv("SECRET")))
+	if err != nil {
+		return "", "", err
+	}
+
+	refreshClaims := jwt.MapClaims{
+		"id":  userID,
+		"exp": time.Now().Add(time.Hour * 24 * 7).Unix(),
+	}
+	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims)
+	refreshTokenString, err := refreshToken.SignedString([]byte(os.Getenv("SECRET")))
+	if err != nil {
+		return "", "", err
+	}
+
+	return accessTokenString, refreshTokenString, nil
+
+}
+
 func ValidateUserRole(role string) (UserRole, error) {
 	switch role {
 	case string(Admin), string(Seller), string(Buyer):
@@ -45,6 +79,10 @@ func RegisterUser(c *gin.Context) {
 		return
 	}
 
+	if err := validatePassword(authInput.Password); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte(authInput.Password), bcrypt.DefaultCost)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -87,21 +125,30 @@ func LoginUser(c *gin.Context) {
 		return
 	}
 
-	tokenString, err := generateJWT(userFound.ID)
+	accessToken, refreshToken, err := generateJWT(userFound.ID, userFound.Role)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
 		return
 	}
+
 	http.SetCookie(c.Writer, &http.Cookie{
 		Name:     "accessToken",
-		Value:    tokenString,
+		Value:    accessToken,
+		Expires:  time.Now().Add(24 * time.Hour),
+		HttpOnly: true,
+	})
+
+	http.SetCookie(c.Writer, &http.Cookie{
+		Name:     "refreshToken",
+		Value:    refreshToken,
 		Expires:  time.Now().Add(24 * time.Hour),
 		HttpOnly: true,
 	})
 
 	c.JSON(http.StatusOK, gin.H{
-		"message":     "Logged in successfully",
-		"accessToken": tokenString,
+		"message":      "Logged in successfully",
+		"accessToken":  accessToken,
+		"refreshToken": refreshToken,
 	})
 }
 
@@ -114,16 +161,13 @@ func Logout(c *gin.Context) {
 		HttpOnly: true,
 	})
 
+	http.SetCookie(c.Writer, &http.Cookie{
+		Name:     "refreshToken",
+		Value:    "",
+		Expires:  time.Now().Add(-time.Hour),
+		HttpOnly: true,
+	})
+
 	c.JSON(http.StatusOK, gin.H{"message": "User logged out"})
 
-}
-
-func generateJWT(userID uint) (string, error) {
-	claims := jwt.MapClaims{
-		"id":  userID,
-		"exp": time.Now().Add(time.Hour * 24).Unix(),
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(os.Getenv("SECRET")))
 }
