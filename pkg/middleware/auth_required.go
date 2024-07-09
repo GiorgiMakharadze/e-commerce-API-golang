@@ -2,31 +2,21 @@ package middleware
 
 import (
 	"net/http"
-	"os"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v4"
+	"github.com/gorilla/sessions"
 )
 
-func AuthRequired() gin.HandlerFunc {
-	return func(c *gin.Context) {
+var store = sessions.NewCookieStore([]byte("secret-key"))
 
-		cookie, err := c.Request.Cookie("accessToken")
-		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-			c.Abort()
-			return
-		}
+func AuthRequired(c *gin.Context) {
+	session, _ := store.Get(c.Request, "auth-session")
 
-		accessToken, err := jwt.Parse(cookie.Value, func(token *jwt.Token) (interface{}, error) {
-			return []byte(os.Getenv("SECRET")), nil
-		})
-		if err != nil || !accessToken.Valid {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-			c.Abort()
-			return
-		}
-
-		c.Next()
+	if session.Values["accessToken"] == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		c.Abort()
+		return
 	}
+
+	c.Next()
 }

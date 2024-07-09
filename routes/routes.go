@@ -3,8 +3,10 @@ package routes
 import (
 	"github.com/GiorgiMakharadze/e-commerce-API-golang/db"
 	"github.com/GiorgiMakharadze/e-commerce-API-golang/internal/auth/handler"
-	"github.com/GiorgiMakharadze/e-commerce-API-golang/internal/auth/repository"
-	"github.com/GiorgiMakharadze/e-commerce-API-golang/internal/auth/service"
+	authRepo "github.com/GiorgiMakharadze/e-commerce-API-golang/internal/auth/repository"
+	authService "github.com/GiorgiMakharadze/e-commerce-API-golang/internal/auth/service"
+	sessionRepo "github.com/GiorgiMakharadze/e-commerce-API-golang/internal/sessions/repository"
+	sessionService "github.com/GiorgiMakharadze/e-commerce-API-golang/internal/sessions/service"
 	"github.com/GiorgiMakharadze/e-commerce-API-golang/pkg/middleware"
 
 	"github.com/gin-gonic/gin"
@@ -13,9 +15,11 @@ import (
 func SetupRouter() *gin.Engine {
 	router := gin.Default()
 
-	authRepo := repository.NewAuthRepository(db.DB)
-	authService := service.NewAuthService(authRepo)
-	authHandler := handler.NewAuthHandler(authService)
+	authRepo := authRepo.NewAuthRepository(db.DB)
+	sessionsRepo := sessionRepo.NewSessionRepository(db.DB)
+	authService := authService.NewAuthService(authRepo)
+	sessionService := sessionService.NewSessionService(sessionsRepo)
+	authHandler := handler.NewAuthHandler(authService, sessionService)
 
 	authRoutes := router.Group("/api/v1/auth")
 	{
@@ -26,7 +30,7 @@ func SetupRouter() *gin.Engine {
 	}
 
 	protectedProductRoute := router.Group("/api/v1/product")
-	protectedProductRoute.Use(middleware.AuthRequired())
+	protectedProductRoute.Use(middleware.AuthRequired)
 	{
 		protectedProductRoute.POST("/create-product")
 	}

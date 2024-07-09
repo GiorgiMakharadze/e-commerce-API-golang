@@ -13,6 +13,7 @@ import (
 type AuthService interface {
 	RegisterUser(authInput models.RegisterAuthInput) (*models.User, error)
 	LoginUser(authInput models.LoginAuthInput) (string, string, error)
+	GetUserByEmail(email string) (*models.User, error)
 }
 
 type authService struct {
@@ -71,4 +72,8 @@ func (s *authService) LoginUser(authInput models.LoginAuthInput) (string, string
 	}
 
 	return accessToken, refreshToken, nil
+}
+
+func (s *authService) GetUserByEmail(email string) (*models.User, error) {
+	return s.repo.FindByEmail(email)
 }

@@ -14,7 +14,7 @@ func init() {
 }
 
 func main() {
-	err := db.DB.AutoMigrate(&models.User{})
+	err := db.DB.AutoMigrate(&models.User{}, &models.Session{})
 	if err != nil {
 		log.Fatalf("Migration failed: %v", err)
 	} else {

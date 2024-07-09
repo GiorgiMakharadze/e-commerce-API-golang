@@ -1,20 +1,29 @@
 package handler
 
 import (
+	"log"
 	"net/http"
-	"time"
+	"os"
 
-	"github.com/GiorgiMakharadze/e-commerce-API-golang/internal/auth/service"
+	auth_service "github.com/GiorgiMakharadze/e-commerce-API-golang/internal/auth/service"
 	"github.com/GiorgiMakharadze/e-commerce-API-golang/internal/models"
+	sessions_service "github.com/GiorgiMakharadze/e-commerce-API-golang/internal/sessions/service"
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/sessions"
 )
 
+var Store = sessions.NewCookieStore([]byte(os.Getenv("SESSION_KEY")))
+
 type AuthHandler struct {
-	service service.AuthService
+	authService    auth_service.AuthService
+	sessionService sessions_service.SessionService
 }
 
-func NewAuthHandler(service service.AuthService) *AuthHandler {
-	return &AuthHandler{service}
+func NewAuthHandler(authService auth_service.AuthService, sessionService sessions_service.SessionService) *AuthHandler {
+	return &AuthHandler{
+		authService:    authService,
+		sessionService: sessionService,
+	}
 }
 
 func (h *AuthHandler) RegisterUser(c *gin.Context) {
@@ -24,7 +33,7 @@ func (h *AuthHandler) RegisterUser(c *gin.Context) {
 		return
 	}
 
-	user, err := h.service.RegisterUser(authInput)
+	user, err := h.authService.RegisterUser(authInput)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -34,31 +43,37 @@ func (h *AuthHandler) RegisterUser(c *gin.Context) {
 }
 
 func (h *AuthHandler) LoginUser(c *gin.Context) {
+	log.Println("Session Key:", os.Getenv("SESSION_KEY"))
+
 	var authInput models.LoginAuthInput
 	if err := c.ShouldBindJSON(&authInput); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	accessToken, refreshToken, err := h.service.LoginUser(authInput)
+	accessToken, refreshToken, err := h.authService.LoginUser(authInput)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	http.SetCookie(c.Writer, &http.Cookie{
-		Name:     "accessToken",
-		Value:    accessToken,
-		Expires:  time.Now().Add(24 * time.Hour),
-		HttpOnly: true,
-	})
+	user, err := h.authService.GetUserByEmail(authInput.Email)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "User not found"})
+		return
+	}
 
-	http.SetCookie(c.Writer, &http.Cookie{
-		Name:     "refreshToken",
-		Value:    refreshToken,
-		Expires:  time.Now().Add(24 * time.Hour),
-		HttpOnly: true,
-	})
+	session := &models.Session{
+		UserID:       user.ID,
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}
+	h.sessionService.CreateSession(session)
+
+	gSession, _ := Store.Get(c.Request, "auth-session")
+	gSession.Values["accessToken"] = accessToken
+	gSession.Values["refreshToken"] = refreshToken
+	gSession.Save(c.Request, c.Writer)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message":      "Logged in successfully",
@@ -68,19 +83,30 @@ func (h *AuthHandler) LoginUser(c *gin.Context) {
 }
 
 func (h *AuthHandler) Logout(c *gin.Context) {
-	http.SetCookie(c.Writer, &http.Cookie{
-		Name:     "accessToken",
-		Value:    "",
-		Expires:  time.Now().Add(-time.Hour),
-		HttpOnly: true,
-	})
+	log.Println("Session Key:", os.Getenv("SESSION_KEY"))
 
-	http.SetCookie(c.Writer, &http.Cookie{
-		Name:     "refreshToken",
-		Value:    "",
-		Expires:  time.Now().Add(-time.Hour),
-		HttpOnly: true,
-	})
+	gSession, _ := Store.Get(c.Request, "auth-session")
+	log.Println(gSession)
+	for key, value := range gSession.Values {
+		log.Println(key, value)
+	}
+	accessToken, ok := gSession.Values["accessToken"].(string)
+	if !ok || accessToken == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid session"})
+		return
+	}
+
+	err := h.sessionService.DeleteSessionByToken(accessToken)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete session"})
+		return
+	}
+
+	gSession.Options.MaxAge = -1
+	if err := gSession.Save(c.Request, c.Writer); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to clear session"})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "User logged out"})
 }

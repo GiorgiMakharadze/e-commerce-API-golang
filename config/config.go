@@ -9,13 +9,14 @@ import (
 )
 
 type Config struct {
-	DBHost     string
-	DBPort     int
-	DBUser     string
-	DBPassword string
-	DBName     string
-	AppPort    int
-	Secret     string
+	DBHost      string
+	DBPort      int
+	DBUser      string
+	DBPassword  string
+	DBName      string
+	AppPort     int
+	Secret      string
+	Session_key string
 }
 
 var AppConfig *Config
@@ -37,12 +38,13 @@ func LoadConfig(filePath string) {
 	}
 
 	AppConfig = &Config{
-		DBHost:     os.Getenv("DB_HOST"),
-		DBPort:     dbPort,
-		DBUser:     os.Getenv("DB_USER"),
-		DBPassword: os.Getenv("DB_PASSWORD"),
-		DBName:     os.Getenv("DB_NAME"),
-		AppPort:    appPort,
-		Secret:     os.Getenv("SECRET"),
+		DBHost:      os.Getenv("DB_HOST"),
+		DBPort:      dbPort,
+		DBUser:      os.Getenv("DB_USER"),
+		DBPassword:  os.Getenv("DB_PASSWORD"),
+		DBName:      os.Getenv("DB_NAME"),
+		AppPort:     appPort,
+		Secret:      os.Getenv("SECRET"),
+		Session_key: os.Getenv("SESSION_KEY"),
 	}
 }

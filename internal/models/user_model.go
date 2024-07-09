@@ -35,10 +35,3 @@ type RegisterAuthInput struct {
 	LastName  string   `json:"last_name"`
 	Role      UserRole `json:"role" binding:"required"`
 }
-
-// type Session struct {
-// 	gorm.Model
-// 	UserID       uint           `json:"user_id" gorm:"index;not null"`
-// 	AccessToken  string         `json:"access_token" gorm:"not null"`
-// 	RefreshToken string         `json:"refresh_token" gorm:"not null"`
-// }
