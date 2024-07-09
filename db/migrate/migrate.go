@@ -5,7 +5,7 @@ import (
 
 	"github.com/GiorgiMakharadze/e-commerce-API-golang/config"
 	"github.com/GiorgiMakharadze/e-commerce-API-golang/db"
-	"github.com/GiorgiMakharadze/e-commerce-API-golang/internal/auth"
+	"github.com/GiorgiMakharadze/e-commerce-API-golang/internal/models"
 )
 
 func init() {
@@ -14,7 +14,7 @@ func init() {
 }
 
 func main() {
-	err := db.DB.AutoMigrate(&auth.User{})
+	err := db.DB.AutoMigrate(&models.User{})
 	if err != nil {
 		log.Fatalf("Migration failed: %v", err)
 	} else {
