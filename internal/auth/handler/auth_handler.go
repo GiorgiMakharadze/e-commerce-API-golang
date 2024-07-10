@@ -9,6 +9,7 @@ import (
 	"github.com/GiorgiMakharadze/e-commerce-API-golang/internal/models"
 	sessions_service "github.com/GiorgiMakharadze/e-commerce-API-golang/internal/sessions/service"
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/csrf"
 	"github.com/gorilla/sessions"
 )
 
@@ -79,6 +80,8 @@ func (h *AuthHandler) LoginUser(c *gin.Context) {
 		"message":      "Logged in successfully",
 		"accessToken":  accessToken,
 		"refreshToken": refreshToken,
+		"csrfToken":    csrf.Token(c.Request), // Include the CSRF token in the response
+
 	})
 }
 
@@ -114,4 +117,10 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "User logged out"})
+}
+
+func (h *AuthHandler) GetCSRFToken(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{
+		"csrfToken": csrf.Token(c.Request),
+	})
 }

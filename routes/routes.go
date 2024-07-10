@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"github.com/GiorgiMakharadze/e-commerce-API-golang/config"
 	"github.com/GiorgiMakharadze/e-commerce-API-golang/db"
 	"github.com/GiorgiMakharadze/e-commerce-API-golang/internal/auth/handler"
 	authRepo "github.com/GiorgiMakharadze/e-commerce-API-golang/internal/auth/repository"
@@ -21,11 +22,14 @@ func SetupRouter() *gin.Engine {
 	sessionService := sessionService.NewSessionService(sessionsRepo)
 	authHandler := handler.NewAuthHandler(authService, sessionService)
 
+	router.Use(middleware.CSRFMiddleware(config.AppConfig.Csrf_key))
+
 	authRoutes := router.Group("/api/v1/auth")
 	{
+		authRoutes.GET("/csrf-token", authHandler.GetCSRFToken)
 		authRoutes.POST("/register", authHandler.RegisterUser)
 		authRoutes.POST("/login", authHandler.LoginUser)
-		authRoutes.POST("/logout", authHandler.Logout)
+		authRoutes.POST("/logout", middleware.AuthRequired, authHandler.Logout)
 
 	}
 

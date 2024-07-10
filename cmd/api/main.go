@@ -8,6 +8,7 @@ import (
 	"github.com/GiorgiMakharadze/e-commerce-API-golang/config"
 	"github.com/GiorgiMakharadze/e-commerce-API-golang/db"
 	"github.com/GiorgiMakharadze/e-commerce-API-golang/internal/auth/handler"
+	"github.com/GiorgiMakharadze/e-commerce-API-golang/pkg/middleware"
 	"github.com/GiorgiMakharadze/e-commerce-API-golang/routes"
 	"github.com/gorilla/sessions"
 )
@@ -17,8 +18,6 @@ func main() {
 
 	db.ConnectDB()
 
-	router := routes.SetupRouter()
-
 	handler.Store = sessions.NewCookieStore([]byte(config.AppConfig.Session_key))
 	handler.Store.Options = &sessions.Options{
 		Domain:   "localhost",
@@ -27,6 +26,9 @@ func main() {
 		HttpOnly: true,
 	}
 
+	middleware.Store = handler.Store
+
+	router := routes.SetupRouter()
 	log.Printf("Starting server on port %d...", config.AppConfig.AppPort)
 	err := http.ListenAndServe(fmt.Sprintf(":%d", config.AppConfig.AppPort), router)
 

@@ -17,6 +17,7 @@ type Config struct {
 	AppPort     int
 	Secret      string
 	Session_key string
+	Csrf_key    string
 }
 
 var AppConfig *Config
@@ -46,5 +47,6 @@ func LoadConfig(filePath string) {
 		AppPort:     appPort,
 		Secret:      os.Getenv("SECRET"),
 		Session_key: os.Getenv("SESSION_KEY"),
+		Csrf_key:    os.Getenv("CSRF_KEY"),
 	}
 }

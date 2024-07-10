@@ -1,7 +1,5 @@
-# Define the binary name
 BINARY_NAME=e-commerce-API-golang
 
-# Define the paths
 CMD_PATH=cmd/api
 MIGRATE_PATH=db/migrate
 
@@ -14,5 +12,7 @@ migrate: $(MIGRATE_PATH)/migrate.go
 compile: $(CMD_PATH)/main.go
 	cd $(CMD_PATH) && go build -o $(BINARY_NAME) main.go
 
+format:
+	go fmt ./...
 
-.PHONY: server migrate compile
+.PHONY: server migrate compile format

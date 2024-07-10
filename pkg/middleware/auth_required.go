@@ -7,10 +7,10 @@ import (
 	"github.com/gorilla/sessions"
 )
 
-var store = sessions.NewCookieStore([]byte("secret-key"))
+var Store *sessions.CookieStore
 
 func AuthRequired(c *gin.Context) {
-	session, _ := store.Get(c.Request, "auth-session")
+	session, _ := Store.Get(c.Request, "auth-session")
 
 	if session.Values["accessToken"] == nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
