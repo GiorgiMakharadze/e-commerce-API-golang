@@ -12,7 +12,7 @@ import (
 	"github.com/gorilla/sessions"
 )
 
-var Store = sessions.NewCookieStore([]byte(os.Getenv("SESSION_KEY")))
+var Store *sessions.CookieStore
 
 type AuthHandler struct {
 	authService    auth_service.AuthService
@@ -85,25 +85,30 @@ func (h *AuthHandler) LoginUser(c *gin.Context) {
 func (h *AuthHandler) Logout(c *gin.Context) {
 	log.Println("Session Key:", os.Getenv("SESSION_KEY"))
 
-	gSession, _ := Store.Get(c.Request, "auth-session")
-	log.Println(gSession)
-	for key, value := range gSession.Values {
-		log.Println(key, value)
+	gSession, err := Store.Get(c.Request, "auth-session")
+	if err != nil {
+		log.Println("Error retrieving session:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve session"})
+		return
 	}
+
 	accessToken, ok := gSession.Values["accessToken"].(string)
 	if !ok || accessToken == "" {
+		log.Println("Invalid session token")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid session"})
 		return
 	}
 
-	err := h.sessionService.DeleteSessionByToken(accessToken)
+	err = h.sessionService.DeleteSessionByToken(accessToken)
 	if err != nil {
+		log.Println("Error deleting session from database:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete session"})
 		return
 	}
 
 	gSession.Options.MaxAge = -1
 	if err := gSession.Save(c.Request, c.Writer); err != nil {
+		log.Println("Error saving session:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to clear session"})
 		return
 	}

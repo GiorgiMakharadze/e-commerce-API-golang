@@ -19,6 +19,7 @@ func main() {
 
 	router := routes.SetupRouter()
 
+	handler.Store = sessions.NewCookieStore([]byte(config.AppConfig.Session_key))
 	handler.Store.Options = &sessions.Options{
 		Domain:   "localhost",
 		Path:     "/",
